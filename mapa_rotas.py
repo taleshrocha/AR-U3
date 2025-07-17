@@ -12,15 +12,14 @@ col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     show_routes = st.checkbox("Mostrar Rotas", value=True)
-    route_opacity = st.slider("Opacidade das Rotas", 0.1, 1.0, 0.3, 0.1)
+    route_opacity = st.slider("Opacidade das Rotas", 0.1, 1.0, 0.1, 0.1)
 
 with col2:
     min_connections = st.slider("Mín. Conexões por Aeroporto", 0, 80, 1)
-    marker_size = st.slider("Tamanho dos Marcadores", 3, 15, 8)
 
 with col3:
     color_by_degree = st.checkbox("Colorir por Grau de Conectividade", value=True)
-    show_labels = st.checkbox("Mostrar Labels IATA", value=False)
+    show_labels = st.checkbox("Mostrar Labels", value=False)
 
 # Filter airports by minimum connections
 G_br = st.session_state.G_br
@@ -48,16 +47,25 @@ else:
     colors = 'blue'
     colorbar_title = None
 
+# Calculate marker sizes based on connections (degree)
+degrees = [degree_mapping.get(aid, 0) for aid in filtered_airports['Airport ID']]
+marker_sizes = []
+for deg in degrees:
+    if deg <= 10:
+        size = max(3, 3 + deg * 0.75)  # Linear scaling for low degrees (3-10)
+    else:
+        size = max(10, min(25, 10 + (deg - 10) * 0.25))  # Reduced scaling for high degrees (10-25)
+    marker_sizes.append(size)
+
 fig.add_trace(go.Scattergeo(
     lon=filtered_airports['Longitude'],
     lat=filtered_airports['Latitude'],
-    text=filtered_airports['Name'] + '<br>IATA: ' + filtered_airports['IATA'].fillna('N/A') +
-         '<br>Conexões: ' + filtered_airports['Airport ID'].map(degree_mapping).fillna(0).astype(str),
+    text=filtered_airports['Name'] + '<br>Conexões: ' + filtered_airports['Airport ID'].map(degree_mapping).fillna(0).astype(str),
     mode='markers+text' if show_labels else 'markers',
     textfont=dict(size=8),
     textposition="top center",
     marker=dict(
-        size=marker_size,
+        size=marker_sizes,
         color=colors,
         colorscale='Viridis' if color_by_degree else None,
         colorbar=dict(title=colorbar_title) if color_by_degree else None,
@@ -128,6 +136,6 @@ with col3:
 with col4:
     if degree_mapping:
         max_connections = max(degree_mapping.values())
-        busiest = [name for aid, name in zip(airports_br['Airport ID'], airports_br['IATA']) 
+        busiest = [name for aid, name in zip(airports_br['Airport ID'], airports_br['Name']) 
                   if degree_mapping.get(aid, 0) == max_connections]
         st.metric("Mais Conectado", busiest[0] if busiest else "N/A")
