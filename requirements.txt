@@ -5,3 +5,11 @@ matplotlib
 seaborn
 plotly
 python-louvain
+panel
+holoviews
+datashader
+param
+bokeh
+hvplot
+geoviews
+streamlit-bokeh

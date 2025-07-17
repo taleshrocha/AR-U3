@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
 import networkx as nx
+import panel as pn
+import holoviews as hv
+from holoviews import opts
+import hvplot.pandas
 
 st.set_page_config(
     layout="wide",
-    page_title="Análise da Rede Aérea Brasileira",
+    page_title="Análise da Rede Aérea Brasileira - PyViz Enhanced",
 )
 
 st.markdown("""
@@ -23,10 +27,13 @@ st.markdown("""
         background-color: white;
         color: #0068c9;
     }
+    .bokeh-plot-wrapper {
+        margin: 20px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Análise da Rede Aérea Brasileira - OpenFlights")
+st.title("Análise Rede Aérea Brasileira")
 
 @st.cache_data
 def load_data():
@@ -41,11 +48,18 @@ airports, routes = load_data()
 airports_br = airports[airports['Country'] == 'Brazil'].copy()
 airport_ids_br = set(airports_br["Airport ID"])
 
+# Check data types and clean the data
+routes = routes.dropna(subset=["Source airport ID", "Destination airport ID"])
+routes["Source airport ID"] = pd.to_numeric(routes["Source airport ID"], errors='coerce')
+routes["Destination airport ID"] = pd.to_numeric(routes["Destination airport ID"], errors='coerce')
+routes = routes.dropna(subset=["Source airport ID", "Destination airport ID"])
+
+# Convert to int after cleaning
+routes["Source airport ID"] = routes["Source airport ID"].astype(int)
+routes["Destination airport ID"] = routes["Destination airport ID"].astype(int)
+
 routes_br = routes[routes["Source airport ID"].isin(airport_ids_br) &
                    routes["Destination airport ID"].isin(airport_ids_br)].copy()
-routes_br = routes_br.dropna(subset=["Source airport ID", "Destination airport ID"])
-routes_br["Source airport ID"] = routes_br["Source airport ID"].astype(int)
-routes_br["Destination airport ID"] = routes_br["Destination airport ID"].astype(int)
 
 G_br = nx.DiGraph()
 
@@ -59,21 +73,31 @@ st.session_state.airports_br = airports_br
 st.session_state.routes_br = routes_br
 st.session_state.G_br = G_br
 
+# Enhanced page selection with descriptions
+page_options = {
+    "Mapa de Rotas Interativo": "Visualização geográfica interativa das rotas aéreas",
+    "Dashboard de Graus": "Análise interativa da distribuição de graus dos aeroportos", 
+    "Centralidade Dinâmica": "Exploração interativa das métricas de centralidade",
+    "Matriz de Adjacência Interativa": "Visualização interativa da matriz de conectividade",
+    "Caminho Mais Curto Avançado": "Calculadora interativa de rotas otimizadas",
+    "Comunidades e Clusters": "Análise avançada de comunidades com controles dinâmicos"
+}
+
 page = st.selectbox(
     "Selecione a visualização:",
-    ["Mapa de Rotas", "Histograma de Grau", "Centralidade dos Nós", 
-     "Matriz de Adjacência", "Caminho Mais Curto", "Comunidades (Louvain)"]
+    list(page_options.keys()),
+    format_func=lambda x: f"{x} - {page_options[x]}"
 )
 
-if page == "Mapa de Rotas":
+if page == "Mapa de Rotas Interativo":
     exec(open("mapa_rotas.py").read())
-elif page == "Histograma de Grau":
+elif page == "Dashboard de Graus":
     exec(open("histograma_grau.py").read())
-elif page == "Centralidade dos Nós":
+elif page == "Centralidade Dinâmica":
     exec(open("centralidade.py").read())
-elif page == "Matriz de Adjacência":
+elif page == "Matriz de Adjacência Interativa":
     exec(open("matriz_adjacencia.py").read())
-elif page == "Caminho Mais Curto":
+elif page == "Caminho Mais Curto Avançado":
     exec(open("caminho_curto.py").read())
-elif page == "Comunidades (Louvain)":
+elif page == "Comunidades e Clusters":
     exec(open("comunidades.py").read())
