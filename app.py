@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
 import networkx as nx
-import panel as pn
-import holoviews as hv
-from holoviews import opts
-import hvplot.pandas
 
 st.set_page_config(
     layout="wide",
@@ -75,18 +71,18 @@ st.session_state.G_br = G_br
 
 # Enhanced page selection with descriptions
 page_options = {
-    "Mapa de Rotas Interativo": "Visualização geográfica interativa das rotas aéreas",
-    "Dashboard de Graus": "Análise interativa da distribuição de graus dos aeroportos", 
-    "Centralidade Dinâmica": "Exploração interativa das métricas de centralidade",
-    "Matriz de Adjacência Interativa": "Visualização interativa da matriz de conectividade",
-    "Caminho Mais Curto Avançado": "Calculadora interativa de rotas otimizadas",
-    "Comunidades e Clusters": "Análise avançada de comunidades com controles dinâmicos"
+    "Mapa de Rotas Interativo",
+    "Dashboard de Graus", 
+    "Centralidade Dinâmica",
+    "Matriz de Adjacência Interativa",
+    "Caminho Mais Curto Avançado",
+    "Comunidades e Clusters"
 }
 
 page = st.selectbox(
     "Selecione a visualização:",
-    list(page_options.keys()),
-    format_func=lambda x: f"{x} - {page_options[x]}"
+    page_options,
+    format_func=lambda x: f"{x}"
 )
 
 if page == "Mapa de Rotas Interativo":

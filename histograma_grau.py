@@ -1,22 +1,13 @@
+import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
-import panel as pn
-import holoviews as hv
-from holoviews import opts
 import pandas as pd
 import numpy as np
-
-# Check if Bokeh backend is available
-try:
-    import bokeh
-    BOKEH_AVAILABLE = True
-except ImportError:
-    BOKEH_AVAILABLE = False
 
 G_br = st.session_state.G_br
 airports_br = st.session_state.airports_br
 
-st.markdown("## 📊 Dashboard de Análise de Graus")
+st.markdown("## Análise de Grau")
 
 # Create degree analysis dataframe
 degrees_data = []
@@ -48,61 +39,17 @@ with col2:
 tab1, tab2, tab3 = st.tabs(["📈 Distribuição", "🏆 Rankings", "📋 Dados Detalhados"])
 
 with tab1:
-    # Enhanced histogram using hvplot with fallback
     st.markdown("### Distribuição de Graus dos Aeroportos")
     
-    try:
-        # Create histogram with hvplot
-        hist_plot = df_degrees.hvplot.hist(
-            y='Degree', 
-            bins=bins_count,
-            title="Distribuição de Graus",
-            xlabel="Grau (Número de Conexões)",
-            ylabel="Frequência",
-            color='skyblue',
-            alpha=0.7,
-            width=600,
-            height=400
-        )
-        
-        if show_kde:
-            kde_plot = df_degrees.hvplot.kde(
-                y='Degree',
-                color='red',
-                line_width=2,
-                width=600,
-                height=400
-            )
-            combined_plot = hist_plot * kde_plot
-        else:
-            combined_plot = hist_plot
-        
-        # Convert to bokeh and display
-        if BOKEH_AVAILABLE:
-            bokeh_plot = hv.render(combined_plot, backend='bokeh')
-            st.bokeh_chart(bokeh_plot, use_container_width=True)
-        else:
-            # Fallback to matplotlib
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.hist(df_degrees['Degree'], bins=bins_count, alpha=0.7, color='skyblue', edgecolor='black')
-            if show_kde:
-                sns.kdeplot(data=df_degrees, x='Degree', ax=ax, color='red', linewidth=2)
-            ax.set_xlabel("Grau (Número de Conexões)")
-            ax.set_ylabel("Frequência")
-            ax.set_title("Distribuição de Graus")
-            st.pyplot(fig)
-            
-    except Exception as e:
-        st.error(f"Erro na visualização: {e}")
-        # Fallback to matplotlib
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.hist(df_degrees['Degree'], bins=bins_count, alpha=0.7, color='skyblue', edgecolor='black')
-        if show_kde:
-            sns.kdeplot(data=df_degrees, x='Degree', ax=ax, color='red', linewidth=2)
-        ax.set_xlabel("Grau (Número de Conexões)")
-        ax.set_ylabel("Frequência")
-        ax.set_title("Distribuição de Graus")
-        st.pyplot(fig)
+    # Create histogram with matplotlib
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.hist(df_degrees['Degree'], bins=bins_count, alpha=0.7, color='skyblue', edgecolor='black')
+    if show_kde:
+        sns.kdeplot(data=df_degrees, x='Degree', ax=ax, color='red', linewidth=2)
+    ax.set_xlabel("Grau (Número de Conexões)")
+    ax.set_ylabel("Frequência")
+    ax.set_title("Distribuição de Graus")
+    st.pyplot(fig)
     
     # Statistics
     col1, col2, col3, col4 = st.columns(4)
@@ -125,40 +72,14 @@ with tab2:
         st.markdown("#### 🥇 Aeroportos Mais Conectados")
         top_airports = df_degrees.nlargest(top_n, 'Degree')[['IATA', 'Name', 'City', 'Degree']]
         
-        try:
-            # Create bar chart
-            bar_plot = top_airports.hvplot.bar(
-                x='IATA', 
-                y='Degree',
-                title=f"Top {top_n} Aeroportos por Conectividade",
-                xlabel="Código IATA",
-                ylabel="Número de Conexões",
-                color='green',
-                width=400,
-                height=300,
-                rot=45
-            )
-            
-            if BOKEH_AVAILABLE:
-                bokeh_bar = hv.render(bar_plot, backend='bokeh')
-                st.bokeh_chart(bokeh_bar, use_container_width=True)
-            else:
-                # Fallback to matplotlib
-                fig, ax = plt.subplots(figsize=(8, 6))
-                top_airports.plot(x='IATA', y='Degree', kind='bar', ax=ax, color='green')
-                ax.set_title(f"Top {top_n} Aeroportos por Conectividade")
-                ax.set_xlabel("Código IATA")
-                ax.set_ylabel("Número de Conexões")
-                plt.xticks(rotation=45)
-                st.pyplot(fig)
-        except Exception as e:
-            st.error(f"Erro na visualização: {e}")
-            # Simple fallback
-            fig, ax = plt.subplots(figsize=(8, 6))
-            top_airports.plot(x='IATA', y='Degree', kind='bar', ax=ax, color='green')
-            ax.set_title(f"Top {top_n} Aeroportos por Conectividade")
-            plt.xticks(rotation=45)
-            st.pyplot(fig)
+        # Create bar chart
+        fig, ax = plt.subplots(figsize=(8, 6))
+        top_airports.plot(x='IATA', y='Degree', kind='bar', ax=ax, color='green')
+        ax.set_title(f"Top {top_n} Aeroportos por Conectividade")
+        ax.set_xlabel("Código IATA")
+        ax.set_ylabel("Número de Conexões")
+        plt.xticks(rotation=45)
+        st.pyplot(fig)
         
         st.dataframe(top_airports, use_container_width=True)
     
@@ -175,32 +96,11 @@ with tab2:
         faixa_counts = df_degrees['Faixa'].value_counts().reset_index()
         faixa_counts.columns = ['Faixa', 'Quantidade']
         
-        try:
-            # Pie chart using hvplot
-            pie_plot = faixa_counts.hvplot.pie(
-                y='Quantidade',
-                by='Faixa',
-                title="Aeroportos por Faixa de Conectividade",
-                width=400,
-                height=300
-            )
-            
-            if BOKEH_AVAILABLE:
-                bokeh_pie = hv.render(pie_plot, backend='bokeh')
-                st.bokeh_chart(bokeh_pie, use_container_width=True)
-            else:
-                # Fallback to matplotlib
-                fig, ax = plt.subplots(figsize=(6, 6))
-                ax.pie(faixa_counts['Quantidade'], labels=faixa_counts['Faixa'], autopct='%1.1f%%')
-                ax.set_title("Aeroportos por Faixa de Conectividade")
-                st.pyplot(fig)
-        except Exception as e:
-            st.error(f"Erro na visualização: {e}")
-            # Simple fallback
-            fig, ax = plt.subplots(figsize=(6, 6))
-            ax.pie(faixa_counts['Quantidade'], labels=faixa_counts['Faixa'], autopct='%1.1f%%')
-            ax.set_title("Aeroportos por Faixa de Conectividade")
-            st.pyplot(fig)
+        # Pie chart
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.pie(faixa_counts['Quantidade'], labels=faixa_counts['Faixa'], autopct='%1.1f%%')
+        ax.set_title("Aeroportos por Faixa de Conectividade")
+        st.pyplot(fig)
         
         st.dataframe(faixa_counts, use_container_width=True)
 

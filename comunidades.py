@@ -1,3 +1,4 @@
+import streamlit as st
 import matplotlib.pyplot as plt
 import networkx as nx
 import community as community_louvain

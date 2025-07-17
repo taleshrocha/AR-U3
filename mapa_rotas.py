@@ -1,8 +1,5 @@
+import streamlit as st
 import plotly.graph_objects as go
-import panel as pn
-import holoviews as hv
-import geoviews as gv
-from holoviews import opts
 import numpy as np
 
 airports_br = st.session_state.airports_br
