@@ -39,17 +39,6 @@ ax.tick_params(axis='both', which='major', labelsize=8)
 ax.grid(True, alpha=0.3)
 st.pyplot(fig)
 
-# Statistics
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("Grau Médio", f"{df_degrees['Degree'].mean():.2f}")
-with col2:
-    st.metric("Grau Máximo", df_degrees['Degree'].max())
-with col3:
-    st.metric("Desvio Padrão", f"{df_degrees['Degree'].std():.2f}")
-with col4:
-    st.metric("Mediana", df_degrees['Degree'].median())
-
 st.markdown("### Aeroportos Mais Conectados")
 top_airports = df_degrees.nlargest(top_n, 'Degree')[['Name', 'City', 'Degree']]
 

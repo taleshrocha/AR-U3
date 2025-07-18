@@ -4,7 +4,7 @@ import networkx as nx
 
 st.set_page_config(
     layout="wide",
-    page_title="Análise da Rede Aérea Brasileira - PyViz Enhanced",
+    page_title="Análise da Rede Aérea Brasileira",
 )
 
 st.markdown("""
@@ -72,8 +72,8 @@ st.session_state.G_br = G_br
 # Enhanced page selection with descriptions
 page_options = {
     "Mapa de Rotas Interativo",
-    "Dashboard de Graus", 
-    "Centralidade Dinâmica",
+    "Dashboard de Grau", 
+    "Centralidade",
     "Matriz de Adjacência Interativa",
     "Caminho Mais Curto Avançado",
     "Comunidades e Clusters"
@@ -87,9 +87,9 @@ page = st.selectbox(
 
 if page == "Mapa de Rotas Interativo":
     exec(open("mapa_rotas.py").read())
-elif page == "Dashboard de Graus":
+elif page == "Dashboard de Grau":
     exec(open("histograma_grau.py").read())
-elif page == "Centralidade Dinâmica":
+elif page == "Centralidade":
     exec(open("centralidade.py").read())
 elif page == "Matriz de Adjacência Interativa":
     exec(open("matriz_adjacencia.py").read())
