@@ -1,9 +1,10 @@
 import streamlit as st
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
 import networkx as nx
 import community as community_louvain
-import matplotlib.cm as cm
 import numpy as np
+import pandas as pd
 
 st.markdown("## Análise de Comunidades na Rede Aérea Brasileira")
 
@@ -36,91 +37,113 @@ for node, comm_id in partition.items():
         communities[comm_id] = []
     communities[comm_id].append(node)
 
-# Create airport ID to info mapping
-airports_br['Airport ID'] = airports_br['Airport ID'].astype(int)
-airport_info = {row['Airport ID']: {'name': row['Name'], 'iata': row['IATA']} 
-                for _, row in airports_br.iterrows()}
+# Create comprehensive dataframe with community information
+community_data = []
+for node_id in G_undirected.nodes():
+    airport_info = airports_br[airports_br['Airport ID'] == node_id]
+    if not airport_info.empty:
+        community_data.append({
+            'Airport_ID': node_id,
+            'IATA': airport_info.iloc[0]['IATA'],
+            'Name': airport_info.iloc[0]['Name'],
+            'City': airport_info.iloc[0]['City'],
+            'Latitude': airport_info.iloc[0]['Latitude'],
+            'Longitude': airport_info.iloc[0]['Longitude'],
+            'Community': partition[node_id],
+            'Connections': G_undirected.degree(node_id)
+        })
 
-# Create visualization
-colors = [partition[n] for n in G_undirected.nodes()]
+df_communities = pd.DataFrame(community_data)
 
-# Community-aware layout: position nodes from same community together
-def community_layout(G, partition, scale=1, center=None, dim=2, seed=42):
-    import numpy as np
-    from collections import defaultdict
+# Create color palette for communities
+colors = px.colors.qualitative.Set3
+if len(communities) > len(colors):
+    colors = colors * (len(communities) // len(colors) + 1)
+
+# Create the map
+fig = go.Figure()
+
+# Add each community as a separate trace
+for i, (comm_id, nodes) in enumerate(communities.items()):
+    comm_data = df_communities[df_communities['Community'] == comm_id]
     
-    # Group nodes by community
-    communities = defaultdict(list)
-    for node, comm in partition.items():
-        communities[comm].append(node)
+    # Calculate marker sizes based on connections (range: 8-25)
+    connections = comm_data['Connections'].values
+    min_conn = connections.min()
+    max_conn = connections.max()
     
-    # Create layout for each community
-    pos = {}
-    np.random.seed(seed)
-    
-    # Calculate community centers in a circle
-    num_communities = len(communities)
-    community_centers = []
-    for i in range(num_communities):
-        angle = 2 * np.pi * i / num_communities
-        x = 3 * np.cos(angle)
-        y = 3 * np.sin(angle)
-        community_centers.append((x, y))
-    
-    # Layout nodes within each community
-    for i, (comm_id, nodes) in enumerate(communities.items()):
-        center_x, center_y = community_centers[i]
-        
-        # Create subgraph for this community
-        subG = G.subgraph(nodes)
-        
-        # Use spring layout for nodes within community
-        if len(nodes) > 1:
-            sub_pos = nx.spring_layout(subG, k=0.8, iterations=50, scale=0.8)
-        else:
-            sub_pos = {nodes[0]: (0, 0)}
-        
-        # Offset positions to community center
-        for node, (x, y) in sub_pos.items():
-            pos[node] = (center_x + x, center_y + y)
-    
-    return pos
-
-pos = community_layout(G_undirected, partition, seed=42)
-
-# Calculate node sizes based on degree
-degrees = [G_undirected.degree(n) for n in G_undirected.nodes()]
-node_sizes = [max(80, deg * 20) for deg in degrees]  # Larger nodes for better visibility
-
-fig, ax = plt.subplots(figsize=(16, 14), facecolor='white')  # Even larger figure
-ax.set_facecolor('white')
-
-# Draw network with thinner edges and better spacing
-nx.draw_networkx_edges(G_undirected, pos, alpha=0.2, width=0.3, edge_color='#666666', ax=ax)  # Even thinner
-nodes = nx.draw_networkx_nodes(G_undirected, pos, 
-                              node_color=colors, 
-                              cmap=cm.get_cmap('Set3'),  # Better color palette for communities
-                              node_size=node_sizes,
-                              alpha=0.9, 
-                              linewidths=1.0,
-                              edgecolors='#000000',
-                              ax=ax)
-
-# Always show IATA labels with black text
-labels = {}
-for node in G_undirected.nodes():
-    if node in airport_info:
-        labels[node] = airport_info[node]['iata']
+    if max_conn > min_conn:
+        normalized_connections = (connections - min_conn) / (max_conn - min_conn)
     else:
-        labels[node] = str(node)
-nx.draw_networkx_labels(G_undirected, pos, labels, font_size=9, font_color='#000000', 
-                       font_weight='bold', ax=ax)
+        normalized_connections = np.ones_like(connections)
+    
+    marker_sizes = 8 + normalized_connections * 17
+    
+    # Create hover text
+    hover_text = []
+    for _, row in comm_data.iterrows():
+        hover_text.append(
+            f"<b>{row['Name']}</b><br>"
+            f"IATA: {row['IATA']}<br>"
+            f"Cidade: {row['City']}<br>"
+            f"Comunidade: {row['Community']}<br>"
+            f"Conexões: {row['Connections']}"
+        )
+    
+    fig.add_trace(go.Scattergeo(
+        lon=comm_data['Longitude'],
+        lat=comm_data['Latitude'],
+        text=comm_data['IATA'],
+        mode='markers+text',
+        textfont=dict(size=10, color='#000000'),
+        textposition="top center",
+        marker=dict(
+            size=marker_sizes,
+            color=colors[i % len(colors)],
+            line=dict(width=1.5, color='#000000'),
+            opacity=0.8
+        ),
+        name=f'Comunidade {comm_id} ({len(nodes)} aeroportos)',
+        hovertemplate='%{customdata}<extra></extra>',
+        customdata=hover_text
+    ))
 
-ax.set_title(f"Comunidades (Louvain) - {len(communities)} comunidades encontradas\n"
-            f"Modularidade: {modularity:.3f}", color='#000000', fontsize=16, fontweight='bold')
-ax.axis('off')
+# Update geo layout
+fig.update_geos(
+    scope='south america',
+    projection_type='natural earth',
+    showland=True,
+    landcolor='rgb(240, 240, 240)',
+    coastlinecolor='rgb(100, 100, 100)',
+    showocean=True,
+    oceancolor='rgb(255, 255, 255)',
+    showcountries=True,
+    countrycolor='rgb(100, 100, 100)',
+    center=dict(lat=-15, lon=-55),
+    projection_scale=1.3
+)
 
-st.pyplot(fig)
+# Update layout
+fig.update_layout(
+    title={
+        'text': f'Comunidades na Rede Aérea Brasileira<br><sub>{len(communities)} comunidades encontradas - Modularidade: {modularity:.3f}</sub>',
+        'x': 0.5,
+        'xanchor': 'center',
+        'font': {'color': '#000000', 'size': 20}
+    },
+    height=800,
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    font=dict(color='#000000'),
+    legend=dict(
+        bgcolor='rgba(255,255,255,0.8)',
+        bordercolor='#000000',
+        borderwidth=1,
+        font=dict(color='#000000')
+    )
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 # Display statistics
 st.markdown("### Estatísticas das Comunidades")
