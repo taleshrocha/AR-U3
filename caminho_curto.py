@@ -3,6 +3,75 @@ import plotly.graph_objects as go
 import networkx as nx
 import numpy as np
 
+# Add CSS to fix metric text color
+st.markdown("""
+<style>
+[data-testid="metric-container"] {
+    background-color: #f0f2f6;
+    border: 1px solid #d3d3d3;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+[data-testid="metric-container"] label {
+    color: #262730 !important;
+    font-size: 14px !important;
+}
+
+[data-testid="metric-container"] [data-testid="metric-value"] {
+    color: #262730 !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+}
+
+div[data-testid="metric-container"] * {
+    color: #262730 !important;
+}
+
+/* More aggressive selectors for metrics */
+.stMetric, .stMetric * {
+    color: #000000 !important;
+}
+
+div[data-testid*="metric"] {
+    color: #000000 !important;
+}
+
+div[data-testid*="metric"] * {
+    color: #000000 !important;
+}
+
+div[data-testid*="metric"] div {
+    color: #000000 !important;
+}
+
+div[data-testid*="metric"] span {
+    color: #000000 !important;
+}
+
+/* Target all possible metric elements */
+[data-testid*="metric"] {
+    color: #000000 !important;
+}
+
+[data-testid*="metric"] * {
+    color: #000000 !important;
+}
+
+/* Override any white text in the main container */
+.main .block-container * {
+    color: #000000 !important;
+}
+
+/* Ensure metric values and labels are black */
+div[data-testid="metric-container"] div,
+div[data-testid="metric-container"] span,
+div[data-testid="metric-container"] p {
+    color: #000000 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 airports_br = st.session_state.airports_br
 routes_br = st.session_state.routes_br
 G_br = st.session_state.G_br
@@ -173,16 +242,10 @@ if clicked_data and 'selection' in clicked_data and clicked_data['selection']['p
 # Control panel
 col1, col2, col3 = st.columns([1, 1, 1])
 
-with col1:
+with col2:
     if st.button("Limpar Seleção"):
         st.session_state.selected_airports = []
         st.rerun()
-
-with col2:
-    st.metric("Aeroportos Selecionados", len(st.session_state.selected_airports))
-
-with col3:
-    st.metric("Total de Aeroportos", len(filtered_airports))
 
 # Show selected airports
 if st.session_state.selected_airports:

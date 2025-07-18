@@ -130,19 +130,81 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# Statistics panel
+# Add custom CSS to fix metric font colors
+st.markdown("""
+<style>
+/* Force all metric text to be black */
+[data-testid="metric-container"] {
+    background-color: white !important;
+    border: 1px solid #ddd !important;
+    padding: 1rem !important;
+    border-radius: 0.5rem !important;
+}
+
+[data-testid="metric-container"] * {
+    color: black !important;
+}
+
+[data-testid="metric-container"] label {
+    color: #666 !important;
+    font-size: 14px !important;
+}
+
+[data-testid="metric-container"] div[data-testid="metric-value"] {
+    color: black !important;
+    font-size: 24px !important;
+    font-weight: 600 !important;
+}
+
+/* Alternative selectors for metric values */
+.metric-container .metric-value {
+    color: black !important;
+}
+
+div[class*="metric"] {
+    color: black !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Statistics panel with custom HTML metrics
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
-    st.metric("Aeroportos Filtrados", len(filtered_airports))
+    st.markdown(f"""
+    <div style="background-color: white; border: 1px solid #ddd; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+        <div style="color: #666; font-size: 14px; margin-bottom: 0.5rem;">Aeroportos Filtrados</div>
+        <div style="color: black; font-size: 24px; font-weight: 600;">{len(filtered_airports)}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 with col2:
-    st.metric("Total de Rotas", len(routes_br))
+    st.markdown(f"""
+    <div style="background-color: white; border: 1px solid #ddd; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+        <div style="color: #666; font-size: 14px; margin-bottom: 0.5rem;">Total de Rotas</div>
+        <div style="color: black; font-size: 24px; font-weight: 600;">{len(routes_br)}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 with col3:
     if not filtered_airports.empty:
         avg_degree = np.mean([degree_mapping.get(aid, 0) for aid in filtered_airports['Airport ID']])
-        st.metric("Conectividade Média", f"{avg_degree:.1f}")
+        st.markdown(f"""
+        <div style="background-color: white; border: 1px solid #ddd; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+            <div style="color: #666; font-size: 14px; margin-bottom: 0.5rem;">Conectividade Média</div>
+            <div style="color: black; font-size: 24px; font-weight: 600;">{avg_degree:.1f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
 with col4:
     if degree_mapping:
         max_connections = max(degree_mapping.values())
         busiest = [name for aid, name in zip(airports_br['Airport ID'], airports_br['Name']) 
                   if degree_mapping.get(aid, 0) == max_connections]
-        st.metric("Mais Conectado", busiest[0] if busiest else "N/A")
+        busiest_name = busiest[0] if busiest else "N/A"
+        st.markdown(f"""
+        <div style="background-color: white; border: 1px solid #ddd; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+            <div style="color: #666; font-size: 14px; margin-bottom: 0.5rem;">Mais Conectado</div>
+            <div style="color: black; font-size: 24px; font-weight: 600;">{busiest_name}</div>
+        </div>
+        """, unsafe_allow_html=True)
