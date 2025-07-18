@@ -30,13 +30,17 @@ top_n = st.slider("Top N Aeroportos", 5, 20, 10)
 st.markdown("### Distribuição de Graus dos Aeroportos")
 
 # Create histogram
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.hist(df_degrees['Degree'], bins=25, alpha=0.7, color='skyblue', edgecolor='black')
-ax.set_xlabel("Grau (Número de Conexões)", fontsize=10)
-ax.set_ylabel("Frequência", fontsize=10)
-ax.set_title("Distribuição de Graus", fontsize=12)
-ax.tick_params(axis='both', which='major', labelsize=8)
-ax.grid(True, alpha=0.3)
+fig, ax = plt.subplots(figsize=(12, 6), facecolor='white')
+ax.set_facecolor('white')
+ax.hist(df_degrees['Degree'], bins=25, alpha=0.8, color='#4169E1', edgecolor='#000000', linewidth=1)
+ax.set_xlabel("Grau (Número de Conexões)", fontsize=12, color='#000000', fontweight='bold')
+ax.set_ylabel("Frequência", fontsize=12, color='#000000', fontweight='bold')
+ax.set_title("Distribuição de Graus", fontsize=16, color='#000000', fontweight='bold')
+ax.tick_params(axis='both', which='major', labelsize=10, colors='#000000')
+ax.grid(True, alpha=0.3, color='#808080')
+for spine in ax.spines.values():
+    spine.set_color('#000000')
+    spine.set_linewidth(2)
 st.pyplot(fig)
 
 st.markdown("### Aeroportos Mais Conectados")
@@ -47,24 +51,28 @@ col1, col2 = st.columns(2)
 
 with col1:
     # Create bar chart with airport names
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(10, 8), facecolor='white')
+    ax.set_facecolor('white')
 
     # Truncate long names for display
     display_names = [name[:25] + '...' if len(name) > 25 else name for name in top_airports['Name']]
 
-    bars = ax.barh(range(len(top_airports)), top_airports['Degree'], color='green')
+    bars = ax.barh(range(len(top_airports)), top_airports['Degree'], color='#1E90FF', edgecolor='#000000', linewidth=1)
     ax.set_yticks(range(len(top_airports)))
-    ax.set_yticklabels(display_names, fontsize=8)
-    ax.set_xlabel("Número de Conexões", fontsize=10)
-    ax.set_title(f"Top {top_n} Aeroportos por Conectividade", fontsize=12)
-    ax.tick_params(axis='x', which='major', labelsize=8)
+    ax.set_yticklabels(display_names, fontsize=10, color='#000000', fontweight='bold')
+    ax.set_xlabel("Número de Conexões", fontsize=12, color='#000000', fontweight='bold')
+    ax.set_title(f"Top {top_n} Aeroportos por Conectividade", fontsize=16, color='#000000', fontweight='bold')
+    ax.tick_params(axis='both', which='major', labelsize=10, colors='#000000')
 
     # Add value labels on bars
     for i, bar in enumerate(bars):
         width = bar.get_width()
-        ax.text(width + 0.1, bar.get_y() + bar.get_height()/2, 
-               f'{int(width)}', ha='left', va='center', fontsize=8)
+        ax.text(width + 0.5, bar.get_y() + bar.get_height()/2, 
+               f'{int(width)}', ha='left', va='center', fontsize=10, color='#000000', fontweight='bold')
 
+    for spine in ax.spines.values():
+        spine.set_color('#000000')
+        spine.set_linewidth(2)
     plt.tight_layout()
     st.pyplot(fig)
 
@@ -82,8 +90,11 @@ with col2:
     faixa_counts.columns = ['Faixa', 'Quantidade']
     
     # Pie chart
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie(faixa_counts['Quantidade'], labels=faixa_counts['Faixa'], autopct='%1.1f%%')
-    ax.set_title("Aeroportos por Faixa de Conectividade", fontsize=12)
-    plt.setp(ax.texts, fontsize=8)
+    fig, ax = plt.subplots(figsize=(6, 6), facecolor='white')
+    ax.set_facecolor('white')
+    colors_pie = ['#87CEEB', '#4682B4', '#1E90FF', '#0000CD', '#191970']
+    wedges, texts, autotexts = ax.pie(faixa_counts['Quantidade'], labels=faixa_counts['Faixa'], autopct='%1.1f%%', 
+           colors=colors_pie, textprops={'color': '#000000', 'fontweight': 'bold', 'fontsize': 12},
+           wedgeprops=dict(edgecolor='#000000', linewidth=2))
+    ax.set_title("Aeroportos por Faixa de Conectividade", fontsize=16, color='#000000', fontweight='bold')
     st.pyplot(fig)

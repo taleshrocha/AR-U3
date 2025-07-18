@@ -43,33 +43,81 @@ airport_info = {row['Airport ID']: {'name': row['Name'], 'iata': row['IATA']}
 
 # Create visualization
 colors = [partition[n] for n in G_undirected.nodes()]
-pos = nx.spring_layout(G_undirected, seed=42)
+
+# Community-aware layout: position nodes from same community together
+def community_layout(G, partition, scale=1, center=None, dim=2, seed=42):
+    import numpy as np
+    from collections import defaultdict
+    
+    # Group nodes by community
+    communities = defaultdict(list)
+    for node, comm in partition.items():
+        communities[comm].append(node)
+    
+    # Create layout for each community
+    pos = {}
+    np.random.seed(seed)
+    
+    # Calculate community centers in a circle
+    num_communities = len(communities)
+    community_centers = []
+    for i in range(num_communities):
+        angle = 2 * np.pi * i / num_communities
+        x = 3 * np.cos(angle)
+        y = 3 * np.sin(angle)
+        community_centers.append((x, y))
+    
+    # Layout nodes within each community
+    for i, (comm_id, nodes) in enumerate(communities.items()):
+        center_x, center_y = community_centers[i]
+        
+        # Create subgraph for this community
+        subG = G.subgraph(nodes)
+        
+        # Use spring layout for nodes within community
+        if len(nodes) > 1:
+            sub_pos = nx.spring_layout(subG, k=0.8, iterations=50, scale=0.8)
+        else:
+            sub_pos = {nodes[0]: (0, 0)}
+        
+        # Offset positions to community center
+        for node, (x, y) in sub_pos.items():
+            pos[node] = (center_x + x, center_y + y)
+    
+    return pos
+
+pos = community_layout(G_undirected, partition, seed=42)
 
 # Calculate node sizes based on degree
 degrees = [G_undirected.degree(n) for n in G_undirected.nodes()]
-node_sizes = [max(20, deg * 10) for deg in degrees]
+node_sizes = [max(80, deg * 20) for deg in degrees]  # Larger nodes for better visibility
 
-fig, ax = plt.subplots(figsize=(12, 10))
+fig, ax = plt.subplots(figsize=(16, 14), facecolor='white')  # Even larger figure
+ax.set_facecolor('white')
 
-# Draw network
-nx.draw_networkx_edges(G_undirected, pos, alpha=0.3, width=0.5, ax=ax)
+# Draw network with thinner edges and better spacing
+nx.draw_networkx_edges(G_undirected, pos, alpha=0.2, width=0.3, edge_color='#666666', ax=ax)  # Even thinner
 nodes = nx.draw_networkx_nodes(G_undirected, pos, 
                               node_color=colors, 
-                              cmap=cm.get_cmap('tab10'),
+                              cmap=cm.get_cmap('Set3'),  # Better color palette for communities
                               node_size=node_sizes,
-                              alpha=0.8, ax=ax)
+                              alpha=0.9, 
+                              linewidths=1.0,
+                              edgecolors='#000000',
+                              ax=ax)
 
-# Always show IATA labels
+# Always show IATA labels with black text
 labels = {}
 for node in G_undirected.nodes():
     if node in airport_info:
         labels[node] = airport_info[node]['iata']
     else:
         labels[node] = str(node)
-nx.draw_networkx_labels(G_undirected, pos, labels, font_size=8, ax=ax)
+nx.draw_networkx_labels(G_undirected, pos, labels, font_size=9, font_color='#000000', 
+                       font_weight='bold', ax=ax)
 
 ax.set_title(f"Comunidades (Louvain) - {len(communities)} comunidades encontradas\n"
-            f"Modularidade: {modularity:.3f}")
+            f"Modularidade: {modularity:.3f}", color='#000000', fontsize=16, fontweight='bold')
 ax.axis('off')
 
 st.pyplot(fig)
@@ -120,9 +168,17 @@ for i, (comm_id, nodes) in enumerate(sorted_communities[:10]):  # Show top 10 co
         # Sort by connections
         airport_list.sort(key=lambda x: x['Conexões'], reverse=True)
         
-        # Display as table
+        # Display as table with explicit styling
         if airport_list:
-            st.dataframe(airport_list, use_container_width=True)
+            df_display = pd.DataFrame(airport_list)
+            st.markdown("""
+            <style>
+            .stDataFrame {
+                background-color: white !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            st.dataframe(df_display, use_container_width=True)
         
         # Community statistics
         degrees_in_comm = [G_undirected.degree(node) for node in nodes]

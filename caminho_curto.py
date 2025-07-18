@@ -39,9 +39,9 @@ for deg in degrees:
 colors = []
 for aid in filtered_airports['Airport ID']:
     if aid in st.session_state.selected_airports:
-        colors.append('red')
+        colors.append('#0000FF')  # Bright blue
     else:
-        colors.append('blue')
+        colors.append('#87CEEB')  # Light blue
 
 # Add airports
 fig.add_trace(go.Scattergeo(
@@ -50,12 +50,12 @@ fig.add_trace(go.Scattergeo(
     text=filtered_airports['IATA'],
     customdata=filtered_airports['Airport ID'],
     mode='markers+text',
-    textfont=dict(size=10),
+    textfont=dict(size=12, color='#000000'),
     textposition="top center",
     marker=dict(
         size=marker_sizes,
         color=colors,
-        line=dict(width=2, color='white')
+        line=dict(width=3, color='#000000')
     ),
     name='Aeroportos',
     hovertemplate='<b>%{text}</b><br>Conexões: ' + 
@@ -78,7 +78,7 @@ for _, row in filtered_routes.iterrows():
             lon=[src.iloc[0]['Longitude'], dst.iloc[0]['Longitude']],
             lat=[src.iloc[0]['Latitude'], dst.iloc[0]['Latitude']],
             mode='lines',
-            line=dict(width=0.8, color='rgba(128,128,128,0.15)'),
+            line=dict(width=1, color='rgba(128,128,128,0.4)'),
             showlegend=False,
             hoverinfo='none'
         ))
@@ -98,10 +98,10 @@ if len(st.session_state.selected_airports) == 2:
             lon=path_lons,
             lat=path_lats,
             mode='markers+text',
-            marker=dict(size=12, color='red', symbol='star'),
+            marker=dict(size=16, color='#0000FF', symbol='star', line=dict(width=3, color='#000000')),
             text=path_codes,
             textposition="top center",
-            textfont=dict(size=12, color='red'),
+            textfont=dict(size=14, color='#000000'),
             name='Menor Número de Conexões',
             showlegend=True
         ))
@@ -114,7 +114,7 @@ if len(st.session_state.selected_airports) == 2:
                 lon=[src.iloc[0]["Longitude"], dst.iloc[0]["Longitude"]],
                 lat=[src.iloc[0]["Latitude"], dst.iloc[0]["Latitude"]],
                 mode='lines',
-                line=dict(width=4, color='red'),
+                line=dict(width=6, color='#0000FF'),
                 showlegend=False,
                 hoverinfo='none'
             ))
@@ -132,23 +132,27 @@ fig.update_layout(
     title={
         'text': f'Rede Aérea Brasileira - Menor Número de Conexões',
         'x': 0.5,
-        'xanchor': 'center'
+        'xanchor': 'center',
+        'font': {'color': '#000000', 'size': 20}
     },
     geo=dict(
         scope='south america',
         projection_type='natural earth',
         showland=True,
-        landcolor='rgb(243, 243, 243)',
-        coastlinecolor='rgb(204, 204, 204)',
+        landcolor='rgb(240, 240, 240)',
+        coastlinecolor='rgb(0, 0, 0)',
         showocean=True,
-        oceancolor='rgb(230, 245, 255)',
+        oceancolor='rgb(255, 255, 255)',
         showcountries=True,
-        countrycolor='rgb(204, 204, 204)',
+        countrycolor='rgb(0, 0, 0)',
         center=dict(lat=-15, lon=-55),
         projection_scale=1.2
     ),
     height=700,
-    showlegend=True
+    showlegend=True,
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    font=dict(color='#000000')
 )
 
 # Display the plot and capture clicks

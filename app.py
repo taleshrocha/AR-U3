@@ -11,20 +11,124 @@ st.markdown("""
 <style>
     .stApp {
         background-color: #ffffff;
-        color: #262730;
+        color: #000000;
     }
     .stTabs [data-baseweb="tab-list"] {
-        background-color: #f0f2f6;
+        background-color: #f0f0f0;
     }
     .stTabs [data-baseweb="tab"] {
-        color: #262730;
+        color: #000000;
+        background-color: #e0e0e0;
     }
     .stTabs [aria-selected="true"] {
-        background-color: white;
-        color: #0068c9;
+        background-color: #ffffff;
+        color: #000000;
+        border-color: #000000;
+        font-weight: bold;
     }
-    .bokeh-plot-wrapper {
-        margin: 20px 0;
+    .stSelectbox label {
+        color: #000000 !important;
+        font-weight: bold;
+    }
+    .stSelectbox > div > div {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    .stSlider label {
+        color: #000000 !important;
+        font-weight: bold;
+    }
+    .stCheckbox label {
+        color: #000000 !important;
+        font-weight: bold;
+    }
+    .stButton button {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+        font-weight: bold !important;
+    }
+    .stButton button:hover {
+        background-color: #f0f0f0 !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
+    .stButton button:focus {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
+    .stMetric label {
+        color: #000000 !important;
+        font-weight: bold;
+    }
+    .stMetric [data-testid="metric-value"] {
+        color: #000000 !important;
+        font-weight: bold;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #000000 !important;
+    }
+    .stMarkdown {
+        color: #000000;
+    }
+    .stExpander label {
+        color: #000000 !important;
+        font-weight: bold;
+    }
+    .stExpander > div {
+        background-color: #ffffff !important;
+    }
+    /* Enhanced dataframe styling */
+    .stDataFrame {
+        background-color: #ffffff !important;
+    }
+    .stDataFrame table {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    .stDataFrame thead th {
+        background-color: #f0f0f0 !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    .stDataFrame tbody td {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    div[data-testid="stDataFrame"] {
+        background-color: #ffffff !important;
+    }
+    div[data-testid="stDataFrame"] table {
+        background-color: #ffffff !important;
+    }
+    div[data-testid="stDataFrame"] th {
+        background-color: #f0f0f0 !important;
+        color: #000000 !important;
+    }
+    div[data-testid="stDataFrame"] td {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    /* Additional dataframe selectors */
+    [data-testid="stDataFrame"] div[data-testid="stDataFrame"] {
+        background-color: #ffffff !important;
+    }
+    .stDataFrame > div {
+        background-color: #ffffff !important;
+    }
+    .css-1kyxreq {
+        background-color: #ffffff !important;
+    }
+    .streamlit-expanderContent .stDataFrame {
+        background-color: #ffffff !important;
+    }
+    .element-container .stSelectbox > div {
+        background-color: #ffffff !important;
+    }
+    .stSelectbox select {
+        background-color: #ffffff !important;
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -74,7 +178,7 @@ page_options = {
     "Mapa de Rotas Interativo",
     "Dashboard de Grau", 
     "Centralidade",
-    "Caminho Mais Curto Avançado",
+    "Caminho Mais Curto",
     "Comunidades e Clusters"
 }
 
@@ -90,7 +194,7 @@ elif page == "Dashboard de Grau":
     exec(open("histograma_grau.py").read())
 elif page == "Centralidade":
     exec(open("centralidade.py").read())
-elif page == "Caminho Mais Curto Avançado":
+elif page == "Caminho Mais Curto":
     exec(open("caminho_curto.py").read())
 elif page == "Comunidades e Clusters":
     exec(open("comunidades.py").read())

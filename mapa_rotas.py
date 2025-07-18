@@ -44,7 +44,7 @@ if color_by_degree and not filtered_airports.empty:
     colors = degrees
     colorbar_title = "Grau de Conectividade"
 else:
-    colors = 'blue'
+    colors = '#1f77b4'  # Light blue instead of 'blue'
     colorbar_title = None
 
 # Calculate marker sizes based on connections (degree)
@@ -62,15 +62,18 @@ fig.add_trace(go.Scattergeo(
     lat=filtered_airports['Latitude'],
     text=filtered_airports['Name'] + '<br>Conexões: ' + filtered_airports['Airport ID'].map(degree_mapping).fillna(0).astype(str),
     mode='markers+text' if show_labels else 'markers',
-    textfont=dict(size=8),
+    textfont=dict(size=8, color='#000000'),
     textposition="top center",
     marker=dict(
         size=marker_sizes,
         color=colors,
-        colorscale='Viridis' if color_by_degree else None,
-        colorbar=dict(title=colorbar_title) if color_by_degree else None,
+        colorscale='Blues' if color_by_degree else None,
+        colorbar=dict(
+            title=dict(text=colorbar_title, font=dict(color='#000000')),
+            tickfont=dict(color='#000000')
+        ) if color_by_degree else None,
         showscale=color_by_degree,
-        line=dict(width=1, color='white')
+        line=dict(width=2, color='#000000')
     ),
     name='Aeroportos',
     hovertemplate='<b>%{text}</b><extra></extra>'
@@ -92,7 +95,7 @@ if show_routes:
                 lon=[src.iloc[0]['Longitude'], dst.iloc[0]['Longitude']],
                 lat=[src.iloc[0]['Latitude'], dst.iloc[0]['Latitude']],
                 mode='lines',
-                line=dict(width=0.8, color='rgba(128,128,128,{})'.format(route_opacity)),
+                line=dict(width=1.2, color=f'rgba(0,0,0,{route_opacity})'),
                 showlegend=False,
                 hoverinfo='none'
             ))
@@ -102,23 +105,27 @@ fig.update_layout(
     title={
         'text': f'Rede Aérea Brasileira - {len(filtered_airports)} Aeroportos',
         'x': 0.5,
-        'xanchor': 'center'
+        'xanchor': 'center',
+        'font': {'color': '#000000', 'size': 20}
     },
     geo=dict(
         scope='south america',
         projection_type='natural earth',
         showland=True,
-        landcolor='rgb(243, 243, 243)',
-        coastlinecolor='rgb(204, 204, 204)',
+        landcolor='rgb(240, 240, 240)',
+        coastlinecolor='rgb(0, 0, 0)',
         showocean=True,
-        oceancolor='rgb(230, 245, 255)',
+        oceancolor='rgb(255, 255, 255)',
         showcountries=True,
-        countrycolor='rgb(204, 204, 204)',
+        countrycolor='rgb(0, 0, 0)',
         center=dict(lat=-15, lon=-55),
         projection_scale=1.2
     ),
     height=700,
-    showlegend=True
+    showlegend=True,
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    font=dict(color='#000000')
 )
 
 st.plotly_chart(fig, use_container_width=True)

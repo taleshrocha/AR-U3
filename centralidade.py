@@ -58,7 +58,8 @@ with tab1:
     
     if visualization_type == "Network Graph":
         # Network graph com cores baseadas na centralidade
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig, ax = plt.subplots(figsize=(12, 10), facecolor='white')  # Larger figure
+        ax.set_facecolor('white')
         
         # Criar subgrafo com apenas os top aeroportos para melhor visualização
         top_airports = df_centrality.nlargest(top_n_display, centrality_metric)
@@ -71,20 +72,20 @@ with tab1:
         
         G_sub = G_br.subgraph(list(subgraph_nodes))
         
-        # Layout e cores
-        pos = nx.spring_layout(G_sub, k=1, iterations=50)
+        # Layout e cores com melhor espaçamento
+        pos = nx.spring_layout(G_sub, k=4, iterations=150, seed=42)  # Increased spacing
         node_colors = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] 
                       if node in df_centrality['Airport_ID'].values else 0 
                       for node in G_sub.nodes()]
         
-        node_sizes = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] * 2000 + 50
-                     if node in df_centrality['Airport_ID'].values else 50
-                     for node in G_sub.nodes()]
+        node_sizes = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] * 3000 + 100
+                     if node in df_centrality['Airport_ID'].values else 100
+                     for node in G_sub.nodes()]  # Larger nodes for better visibility
         
-        # Desenhar o grafo
+        # Desenhar o grafo com edges mais finas
         nx.draw_networkx_nodes(G_sub, pos, node_color=node_colors, node_size=node_sizes, 
-                              cmap='viridis', alpha=0.8, ax=ax)
-        nx.draw_networkx_edges(G_sub, pos, alpha=0.3, width=0.5, ax=ax)
+                              cmap='Blues', alpha=0.9, linewidths=1.5, edgecolors='#000000', ax=ax)  # Thinner borders
+        nx.draw_networkx_edges(G_sub, pos, alpha=0.3, width=0.5, edge_color='#333333', ax=ax)  # Much thinner edges
         
         # Labels apenas para top aeroportos
         top_labels = {}
@@ -93,16 +94,20 @@ with tab1:
             if not airport_info.empty:
                 top_labels[node] = airport_info.iloc[0]['IATA']
         
-        nx.draw_networkx_labels(G_sub, pos, labels=top_labels, font_size=8, ax=ax)
+        nx.draw_networkx_labels(G_sub, pos, labels=top_labels, font_size=9, font_color='#000000', 
+                               font_weight='bold', ax=ax)
         
-        ax.set_title(f"Rede de Aeroportos - Colorido por {centrality_metric.replace('_', ' ').title()}")
+        ax.set_title(f"Rede de Aeroportos - Colorido por {centrality_metric.replace('_', ' ').title()}", 
+                    color='#000000', fontsize=16, fontweight='bold')
         ax.axis('off')
         
         # Colorbar
-        sm = plt.cm.ScalarMappable(cmap='viridis', 
+        sm = plt.cm.ScalarMappable(cmap='Blues', 
                                   norm=plt.Normalize(vmin=min(node_colors), vmax=max(node_colors)))
         sm.set_array([])
-        plt.colorbar(sm, ax=ax, label=centrality_metric.replace('_', ' ').title())
+        cbar = plt.colorbar(sm, ax=ax, label=centrality_metric.replace('_', ' ').title())
+        cbar.ax.tick_params(labelsize=10, colors='#000000')
+        cbar.set_label(centrality_metric.replace('_', ' ').title(), fontsize=12, color='#000000', fontweight='bold')
         
         st.pyplot(fig)
 
@@ -110,13 +115,22 @@ with tab1:
         # Top airports bar chart
         top_airports = df_centrality.nlargest(top_n_display, centrality_metric)
         
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig, ax = plt.subplots(figsize=(8, 6), facecolor='white')
+        ax.set_facecolor('white')
         
-        top_airports.plot(x='IATA', y=centrality_metric, kind='bar', ax=ax, color='orange')
-        ax.set_title(f"Top {top_n_display} - {centrality_metric.replace('_', ' ').title()}")
-        ax.set_xlabel("Aeroporto (IATA)")
-        ax.set_ylabel(centrality_metric.replace('_', ' ').title())
+        bars = ax.bar(top_airports['IATA'], top_airports[centrality_metric], color='#1E90FF', 
+                     edgecolor='#000000', linewidth=1)
+        ax.set_title(f"Top {top_n_display} - {centrality_metric.replace('_', ' ').title()}", 
+                    color='#000000', fontsize=16, fontweight='bold')
+        ax.set_xlabel("Aeroporto (IATA)", color='#000000', fontsize=12, fontweight='bold')
+        ax.set_ylabel(centrality_metric.replace('_', ' ').title(), color='#000000', fontsize=12, fontweight='bold')
+        ax.tick_params(axis='both', which='major', labelsize=10, colors='#000000')
+        
+        for spine in ax.spines.values():
+            spine.set_color('#000000')
+            spine.set_linewidth(2)
         plt.xticks(rotation=45)
+        plt.tight_layout()
         st.pyplot(fig)
 
 with tab2:
