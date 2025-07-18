@@ -74,7 +74,6 @@ page_options = {
     "Mapa de Rotas Interativo",
     "Dashboard de Grau", 
     "Centralidade",
-    "Matriz de Adjacência Interativa",
     "Caminho Mais Curto Avançado",
     "Comunidades e Clusters"
 }
@@ -91,8 +90,6 @@ elif page == "Dashboard de Grau":
     exec(open("histograma_grau.py").read())
 elif page == "Centralidade":
     exec(open("centralidade.py").read())
-elif page == "Matriz de Adjacência Interativa":
-    exec(open("matriz_adjacencia.py").read())
 elif page == "Caminho Mais Curto Avançado":
     exec(open("caminho_curto.py").read())
 elif page == "Comunidades e Clusters":
