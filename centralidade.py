@@ -1,9 +1,9 @@
 import streamlit as st
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import networkx as nx
 import pandas as pd
 import numpy as np
-import seaborn as sns
 
 G_br = st.session_state.G_br
 airports_br = st.session_state.airports_br
@@ -26,6 +26,8 @@ for node_id in G_br.nodes():
             'IATA': airport_info.iloc[0]['IATA'],
             'Name': airport_info.iloc[0]['Name'],
             'City': airport_info.iloc[0]['City'],
+            'Latitude': airport_info.iloc[0]['Latitude'],
+            'Longitude': airport_info.iloc[0]['Longitude'],
             'Degree_Centrality': degree_cent[node_id],
             'Betweenness_Centrality': betweenness_cent[node_id],
             'Closeness_Centrality': closeness_cent[node_id],
@@ -34,118 +36,192 @@ for node_id in G_br.nodes():
 
 df_centrality = pd.DataFrame(centrality_data)
 
-# Interactive controls
-col1, col2 = st.columns([1, 1])
+# Define centrality metrics
+centrality_metrics = [
+    ('Degree_Centrality', 'Degree Centrality'),
+    ('Betweenness_Centrality', 'Betweenness Centrality'),
+    ('Closeness_Centrality', 'Closeness Centrality'),
+    ('Eigenvector_Centrality', 'Eigenvector Centrality')
+]
 
-with col1:
-    centrality_metric = st.selectbox(
-        "Métrica de Centralidade:",
-        ["Degree_Centrality", "Betweenness_Centrality", "Closeness_Centrality", "Eigenvector_Centrality"],
-        format_func=lambda x: x.replace('_', ' ').title()
-    )
+# Create subplots with 2x2 layout
+fig = make_subplots(
+    rows=2, cols=2,
+    subplot_titles=[title for _, title in centrality_metrics],
+    specs=[[{"type": "geo"}, {"type": "geo"}],
+           [{"type": "geo"}, {"type": "geo"}]],
+    vertical_spacing=0.12,
+    horizontal_spacing=0.05
+)
 
-with col2:
-    visualization_type = st.selectbox(
-        "Tipo de Visualização:",
-        ["Network Graph", "Ranking Bars"]
-    )
+# Color scales for each metric
+color_scales = ['Viridis', 'Plasma', 'Cividis', 'Turbo']
+
+for idx, ((metric, title), colorscale) in enumerate(zip(centrality_metrics, color_scales)):
+    row = (idx // 2) + 1
+    col = (idx % 2) + 1
+    
+    # Get centrality values and normalize them
+    centrality_values = df_centrality[metric].values
+    min_cent = centrality_values.min()
+    max_cent = centrality_values.max()
+    
+    # Calculate marker sizes based on centrality (range: 4-30)
+    normalized_centrality = (centrality_values - min_cent) / (max_cent - min_cent) if max_cent > min_cent else np.ones_like(centrality_values)
+    marker_sizes = 4 + normalized_centrality * 26
+    
+    # Calculate opacity based on centrality (range: 0.3-1.0)
+    marker_opacity = 0.3 + normalized_centrality * 0.7
+    
+    # Get top 5 airports for labels
+    top_airports = df_centrality.nlargest(5, metric)
+    top_airport_ids = set(top_airports['Airport_ID'])
+    
+    # Create hover text
+    hover_text = []
+    for _, row_data in df_centrality.iterrows():
+        hover_text.append(
+            f"<b>{row_data['Name']}</b><br>"
+            f"IATA: {row_data['IATA']}<br>"
+            f"Cidade: {row_data['City']}<br>"
+            f"{title}: {row_data[metric]:.4f}"
+        )
+    
+    # Add airports trace
+    fig.add_trace(go.Scattergeo(
+        lon=df_centrality['Longitude'],
+        lat=df_centrality['Latitude'],
+        text=[row_data['IATA'] if row_data['Airport_ID'] in top_airport_ids else '' 
+              for _, row_data in df_centrality.iterrows()],
+        mode='markers+text',
+        textfont=dict(size=10, color='#000000'),
+        textposition="top center",
+        marker=dict(
+            size=marker_sizes,
+            color=centrality_values,
+            colorscale=colorscale,
+            showscale=True,
+            colorbar=dict(
+                title=dict(text=title, font=dict(color='#000000', size=12)),
+                tickfont=dict(color='#000000', size=10),
+                len=0.35,
+                x=1.02 if col == 2 else -0.02,
+                y=0.75 if row == 1 else 0.25,
+                thickness=15
+            ),
+            line=dict(width=1.5, color='#000000'),
+            opacity=marker_opacity,
+            cmin=min_cent,
+            cmax=max_cent
+        ),
+        name=f'Aeroportos - {title}',
+        hovertemplate='%{customdata}<extra></extra>',
+        customdata=hover_text,
+        showlegend=False
+    ), row=row, col=col)
+
+# Update geo layout for each subplot
+geo_config = dict(
+    scope='south america',
+    projection_type='natural earth',
+    showland=True,
+    landcolor='rgb(240, 240, 240)',
+    coastlinecolor='rgb(100, 100, 100)',
+    showocean=True,
+    oceancolor='rgb(255, 255, 255)',
+    showcountries=True,
+    countrycolor='rgb(100, 100, 100)',
+    center=dict(lat=-15, lon=-55),
+    projection_scale=1.3
+)
+
+fig.update_geos(geo_config)
+
+# Update layout
+fig.update_layout(
+    title={
+        'text': 'Métricas de Centralidade da Rede Aérea Brasileira',
+        'x': 0.5,
+        'xanchor': 'center',
+        'font': {'color': '#000000', 'size': 22}
+    },
+    height=1400,
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    font=dict(color='#000000'),
+    showlegend=False
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 # Create tabs for different views
-tab1, tab2 = st.tabs(["Visualização Principal", "Rankings"])
+tab1, tab2 = st.tabs(["Rankings", "Estatísticas Comparativas"])
 
 with tab1:
-    top_n_display = st.slider("Top N para destacar", 5, 20, 10)
-    
-    if visualization_type == "Network Graph":
-        # Network graph com cores baseadas na centralidade
-        fig, ax = plt.subplots(figsize=(12, 10), facecolor='white')  # Larger figure
-        ax.set_facecolor('white')
-        
-        # Criar subgrafo com apenas os top aeroportos para melhor visualização
-        top_airports = df_centrality.nlargest(top_n_display, centrality_metric)
-        top_nodes = top_airports['Airport_ID'].tolist()
-        
-        # Incluir também conexões entre esses nós
-        subgraph_nodes = set(top_nodes)
-        for node in top_nodes:
-            subgraph_nodes.update(G_br.neighbors(node))
-        
-        G_sub = G_br.subgraph(list(subgraph_nodes))
-        
-        # Layout e cores com melhor espaçamento
-        pos = nx.spring_layout(G_sub, k=4, iterations=150, seed=42)  # Increased spacing
-        node_colors = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] 
-                      if node in df_centrality['Airport_ID'].values else 0 
-                      for node in G_sub.nodes()]
-        
-        node_sizes = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] * 3000 + 100
-                     if node in df_centrality['Airport_ID'].values else 100
-                     for node in G_sub.nodes()]  # Larger nodes for better visibility
-        
-        # Desenhar o grafo com edges mais finas
-        nx.draw_networkx_nodes(G_sub, pos, node_color=node_colors, node_size=node_sizes, 
-                              cmap='Blues', alpha=0.9, linewidths=1.5, edgecolors='#000000', ax=ax)  # Thinner borders
-        nx.draw_networkx_edges(G_sub, pos, alpha=0.3, width=0.5, edge_color='#333333', ax=ax)  # Much thinner edges
-        
-        # Labels apenas para top aeroportos
-        top_labels = {}
-        for node in top_nodes:
-            airport_info = df_centrality[df_centrality['Airport_ID'] == node]
-            if not airport_info.empty:
-                top_labels[node] = airport_info.iloc[0]['IATA']
-        
-        nx.draw_networkx_labels(G_sub, pos, labels=top_labels, font_size=9, font_color='#000000', 
-                               font_weight='bold', ax=ax)
-        
-        ax.set_title(f"Rede de Aeroportos - Colorido por {centrality_metric.replace('_', ' ').title()}", 
-                    color='#000000', fontsize=16, fontweight='bold')
-        ax.axis('off')
-        
-        # Colorbar
-        sm = plt.cm.ScalarMappable(cmap='Blues', 
-                                  norm=plt.Normalize(vmin=min(node_colors), vmax=max(node_colors)))
-        sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, label=centrality_metric.replace('_', ' ').title())
-        cbar.ax.tick_params(labelsize=10, colors='#000000')
-        cbar.set_label(centrality_metric.replace('_', ' ').title(), fontsize=12, color='#000000', fontweight='bold')
-        
-        st.pyplot(fig)
-
-    elif visualization_type == "Ranking Bars":
-        # Top airports bar chart
-        top_airports = df_centrality.nlargest(top_n_display, centrality_metric)
-        
-        fig, ax = plt.subplots(figsize=(8, 6), facecolor='white')
-        ax.set_facecolor('white')
-        
-        bars = ax.bar(top_airports['IATA'], top_airports[centrality_metric], color='#1E90FF', 
-                     edgecolor='#000000', linewidth=1)
-        ax.set_title(f"Top {top_n_display} - {centrality_metric.replace('_', ' ').title()}", 
-                    color='#000000', fontsize=16, fontweight='bold')
-        ax.set_xlabel("Aeroporto (IATA)", color='#000000', fontsize=12, fontweight='bold')
-        ax.set_ylabel(centrality_metric.replace('_', ' ').title(), color='#000000', fontsize=12, fontweight='bold')
-        ax.tick_params(axis='both', which='major', labelsize=10, colors='#000000')
-        
-        for spine in ax.spines.values():
-            spine.set_color('#000000')
-            spine.set_linewidth(2)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        st.pyplot(fig)
-
-with tab2:
     st.markdown("### Rankings Detalhados")
     
-    ranked_df = df_centrality.sort_values(centrality_metric, ascending=False).head(20)
+    # Show top 10 for each metric side by side
+    col1, col2 = st.columns(2)
     
-    st.dataframe(
-        ranked_df[['Name', 'Degree_Centrality', 'Betweenness_Centrality', 'Closeness_Centrality', 'Eigenvector_Centrality']],
-        use_container_width=True,
-        column_config={
-            'Name': st.column_config.TextColumn('Aeroporto'),
-            'Degree_Centrality': st.column_config.NumberColumn('Degree', format="%.4f"),
-            'Betweenness_Centrality': st.column_config.NumberColumn('Betweenness', format="%.4f"),
-            'Closeness_Centrality': st.column_config.NumberColumn('Closeness', format="%.4f"),
-            'Eigenvector_Centrality': st.column_config.NumberColumn('Eigenvector', format="%.4f")
-        }
-    )
+    with col1:
+        st.markdown("#### Top 10 - Degree Centrality")
+        degree_top = df_centrality.nlargest(10, 'Degree_Centrality')[['IATA', 'Name', 'City', 'Degree_Centrality']]
+        st.dataframe(degree_top, use_container_width=True, hide_index=True)
+        
+        st.markdown("#### Top 10 - Closeness Centrality")
+        closeness_top = df_centrality.nlargest(10, 'Closeness_Centrality')[['IATA', 'Name', 'City', 'Closeness_Centrality']]
+        st.dataframe(closeness_top, use_container_width=True, hide_index=True)
+    
+    with col2:
+        st.markdown("#### Top 10 - Betweenness Centrality")
+        betweenness_top = df_centrality.nlargest(10, 'Betweenness_Centrality')[['IATA', 'Name', 'City', 'Betweenness_Centrality']]
+        st.dataframe(betweenness_top, use_container_width=True, hide_index=True)
+        
+        st.markdown("#### Top 10 - Eigenvector Centrality")
+        eigenvector_top = df_centrality.nlargest(10, 'Eigenvector_Centrality')[['IATA', 'Name', 'City', 'Eigenvector_Centrality']]
+        st.dataframe(eigenvector_top, use_container_width=True, hide_index=True)
+
+with tab2:
+    st.markdown("### Estatísticas Comparativas")
+    
+    # Statistics for all metrics
+    for metric, title in centrality_metrics:
+        st.markdown(f"#### {title}")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        centrality_vals = df_centrality[metric]
+        top_airport = df_centrality.loc[centrality_vals.idxmax()]
+        
+        with col1:
+            st.markdown(f"""
+            <div style="background-color: white; border: 1px solid #ddd; padding: 0.5rem; border-radius: 0.5rem; text-align: center;">
+                <div style="color: #666; font-size: 12px; margin-bottom: 0.25rem;">Máximo</div>
+                <div style="color: black; font-size: 18px; font-weight: 600;">{centrality_vals.max():.4f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div style="background-color: white; border: 1px solid #ddd; padding: 0.5rem; border-radius: 0.5rem; text-align: center;">
+                <div style="color: #666; font-size: 12px; margin-bottom: 0.25rem;">Média</div>
+                <div style="color: black; font-size: 18px; font-weight: 600;">{centrality_vals.mean():.4f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"""
+            <div style="background-color: white; border: 1px solid #ddd; padding: 0.5rem; border-radius: 0.5rem; text-align: center;">
+                <div style="color: #666; font-size: 12px; margin-bottom: 0.25rem;">Desvio Padrão</div>
+                <div style="color: black; font-size: 18px; font-weight: 600;">{centrality_vals.std():.4f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            st.markdown(f"""
+            <div style="background-color: white; border: 1px solid #ddd; padding: 0.5rem; border-radius: 0.5rem; text-align: center;">
+                <div style="color: #666; font-size: 12px; margin-bottom: 0.25rem;">Mais Central</div>
+                <div style="color: black; font-size: 18px; font-weight: 600;">{top_airport['IATA']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("---")
