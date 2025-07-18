@@ -8,10 +8,7 @@ import seaborn as sns
 G_br = st.session_state.G_br
 airports_br = st.session_state.airports_br
 
-st.markdown("## 🎯 Análise Avançada de Centralidade")
-
-# Calculate multiple centrality measures
-st.info("Calculando métricas de centralidade... Isso pode levar alguns momentos.")
+st.markdown("## Análise Avançada de Centralidade")
 
 with st.spinner("Processando..."):
     degree_cent = nx.degree_centrality(G_br)
@@ -38,7 +35,7 @@ for node_id in G_br.nodes():
 df_centrality = pd.DataFrame(centrality_data)
 
 # Interactive controls
-col1, col2, col3 = st.columns([1, 1, 1])
+col1, col2 = st.columns([1, 1])
 
 with col1:
     centrality_metric = st.selectbox(
@@ -50,91 +47,91 @@ with col1:
 with col2:
     visualization_type = st.selectbox(
         "Tipo de Visualização:",
-        ["Scatter Plot", "Network Graph", "Ranking Bars", "Correlation Matrix"]
+        ["Network Graph", "Ranking Bars"]
     )
 
-with col3:
-    top_n_display = st.slider("Top N para destacar", 5, 20, 10)
-
 # Create tabs for different views
-tab1, tab2, tab3 = st.tabs(["📊 Visualização Principal", "🔄 Comparação de Métricas", "📈 Rankings"])
+tab1, tab2 = st.tabs(["Visualização Principal", "Rankings"])
 
 with tab1:
-    if visualization_type == "Scatter Plot":
-        # Enhanced scatter plot
-        fig, ax = plt.subplots(figsize=(10, 8))
-        scatter = ax.scatter(
-            df_centrality['Degree_Centrality'],
-            df_centrality[centrality_metric],
-            c=df_centrality[centrality_metric],
-            s=df_centrality[centrality_metric]*1000,
-            cmap='viridis',
-            alpha=0.7
-        )
-        ax.set_xlabel("Degree Centrality")
-        ax.set_ylabel(centrality_metric.replace('_', ' ').title())
-        ax.set_title(f"Centralidade: {centrality_metric.replace('_', ' ').title()}")
-        plt.colorbar(scatter)
-        st.pyplot(fig)
+    top_n_display = st.slider("Top N para destacar", 5, 20, 10)
     
+    if visualization_type == "Network Graph":
+        # Network graph com cores baseadas na centralidade
+        fig, ax = plt.subplots(figsize=(6, 4))
+        
+        # Criar subgrafo com apenas os top aeroportos para melhor visualização
+        top_airports = df_centrality.nlargest(top_n_display, centrality_metric)
+        top_nodes = top_airports['Airport_ID'].tolist()
+        
+        # Incluir também conexões entre esses nós
+        subgraph_nodes = set(top_nodes)
+        for node in top_nodes:
+            subgraph_nodes.update(G_br.neighbors(node))
+        
+        G_sub = G_br.subgraph(list(subgraph_nodes))
+        
+        # Layout e cores
+        pos = nx.spring_layout(G_sub, k=1, iterations=50)
+        node_colors = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] 
+                      if node in df_centrality['Airport_ID'].values else 0 
+                      for node in G_sub.nodes()]
+        
+        node_sizes = [df_centrality[df_centrality['Airport_ID'] == node][centrality_metric].iloc[0] * 2000 + 50
+                     if node in df_centrality['Airport_ID'].values else 50
+                     for node in G_sub.nodes()]
+        
+        # Desenhar o grafo
+        nx.draw_networkx_nodes(G_sub, pos, node_color=node_colors, node_size=node_sizes, 
+                              cmap='viridis', alpha=0.8, ax=ax)
+        nx.draw_networkx_edges(G_sub, pos, alpha=0.3, width=0.5, ax=ax)
+        
+        # Labels apenas para top aeroportos
+        top_labels = {}
+        for node in top_nodes:
+            airport_info = df_centrality[df_centrality['Airport_ID'] == node]
+            if not airport_info.empty:
+                top_labels[node] = airport_info.iloc[0]['IATA']
+        
+        nx.draw_networkx_labels(G_sub, pos, labels=top_labels, font_size=8, ax=ax)
+        
+        ax.set_title(f"Rede de Aeroportos - Colorido por {centrality_metric.replace('_', ' ').title()}")
+        ax.axis('off')
+        
+        # Colorbar
+        sm = plt.cm.ScalarMappable(cmap='viridis', 
+                                  norm=plt.Normalize(vmin=min(node_colors), vmax=max(node_colors)))
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, label=centrality_metric.replace('_', ' ').title())
+        
+        st.pyplot(fig)
+
     elif visualization_type == "Ranking Bars":
         # Top airports bar chart
         top_airports = df_centrality.nlargest(top_n_display, centrality_metric)
         
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(6, 4))
+        
         top_airports.plot(x='IATA', y=centrality_metric, kind='bar', ax=ax, color='orange')
         ax.set_title(f"Top {top_n_display} - {centrality_metric.replace('_', ' ').title()}")
         ax.set_xlabel("Aeroporto (IATA)")
         ax.set_ylabel(centrality_metric.replace('_', ' ').title())
         plt.xticks(rotation=45)
         st.pyplot(fig)
-    
-    elif visualization_type == "Correlation Matrix":
-        # Correlation heatmap
-        corr_cols = ['Degree_Centrality', 'Betweenness_Centrality', 'Closeness_Centrality', 'Eigenvector_Centrality']
-        correlation_matrix = df_centrality[corr_cols].corr()
-        
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(correlation_matrix, annot=True, cmap='RdBu_r', center=0, ax=ax)
-        ax.set_title("Correlação entre Métricas de Centralidade")
-        st.pyplot(fig)
 
 with tab2:
-    st.markdown("### 🔄 Comparação de Métricas")
+    st.markdown("### Rankings Detalhados")
     
-    # Multi-metric comparison
-    metrics_to_compare = st.multiselect(
-        "Selecione métricas para comparar:",
-        ['Degree_Centrality', 'Betweenness_Centrality', 'Closeness_Centrality', 'Eigenvector_Centrality'],
-        default=['Degree_Centrality', 'Betweenness_Centrality']
-    )
-    
-    if len(metrics_to_compare) >= 2:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        df_centrality[metrics_to_compare].boxplot(ax=ax)
-        ax.set_title("Distribuição das Métricas de Centralidade")
-        ax.set_ylabel("Valor da Centralidade")
-        plt.xticks(rotation=45)
-        st.pyplot(fig)
-
-with tab3:
-    st.markdown("### 📈 Rankings Detalhados")
-    
-    ranking_metric = st.selectbox(
-        "Métrica para ranking:",
-        ['Degree_Centrality', 'Betweenness_Centrality', 'Closeness_Centrality', 'Eigenvector_Centrality'],
-        key="ranking_metric"
-    )
-    
-    ranked_df = df_centrality.sort_values(ranking_metric, ascending=False).head(20)
+    ranked_df = df_centrality.sort_values(centrality_metric, ascending=False).head(20)
     
     st.dataframe(
-        ranked_df[['IATA', 'Name', 'City', ranking_metric]],
+        ranked_df[['Name', 'Degree_Centrality', 'Betweenness_Centrality', 'Closeness_Centrality', 'Eigenvector_Centrality']],
         use_container_width=True,
         column_config={
-            ranking_metric: st.column_config.NumberColumn(
-                ranking_metric.replace('_', ' ').title(),
-                format="%.4f"
-            )
+            'Name': st.column_config.TextColumn('Aeroporto'),
+            'Degree_Centrality': st.column_config.NumberColumn('Degree', format="%.4f"),
+            'Betweenness_Centrality': st.column_config.NumberColumn('Betweenness', format="%.4f"),
+            'Closeness_Centrality': st.column_config.NumberColumn('Closeness', format="%.4f"),
+            'Eigenvector_Centrality': st.column_config.NumberColumn('Eigenvector', format="%.4f")
         }
     )
