@@ -179,7 +179,8 @@ page_options = {
     "Dashboard de Grau", 
     "Centralidade",
     "Caminho Mais Curto",
-    "Comunidades e Clusters"
+    "Comunidades e Clusters",
+    "Robustez da Rede"
 }
 
 page = st.selectbox(
@@ -198,3 +199,5 @@ elif page == "Caminho Mais Curto":
     exec(open("caminho_curto.py").read())
 elif page == "Comunidades e Clusters":
     exec(open("comunidades.py").read())
+elif page == "Robustez da Rede":
+    exec(open("robustez.py").read())
